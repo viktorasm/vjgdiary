@@ -11,7 +11,7 @@ Resources:
       Handler: bootstrap
       Architectures:
         - x86_64
-      Timeout: 20
+      Timeout: 60
       Events:
         RootPath:
           Type: HttpApi
@@ -30,6 +30,20 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: '$default'
+
+  CustomDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: "vjgdiary.neglostyti.com"
+      DomainNameConfigurations:
+        - CertificateArn: "arn:aws:acm:eu-central-1:647278206015:certificate/73186c7e-3eb1-4917-b073-50ef71522bb4"
+
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref DefaultHttpAPI
+      DomainName: !Ref CustomDomainName
+      Stage: '$default'
 
   LambdaHandlerLogGroup:
     Type: AWS::Logs::LogGroup

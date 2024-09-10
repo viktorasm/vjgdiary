@@ -46,7 +46,12 @@ func BuildServer() *mux.Router {
 	})
 	fs := http.FS(rootDir)
 	fileServer := http.FileServer(fs)
-	mux.PathPrefix("/").Handler(fileServer)
+	mux.PathPrefix("/_app").Handler(fileServer)
+
+	mux.PathPrefix("").HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Add("Location", "/")
+		writer.WriteHeader(http.StatusFound)
+	})
 
 	return mux
 	//err := http.ListenAndServe(fmt.Sprintf(":%d", &cfg.Port), mux)
@@ -139,7 +144,7 @@ func lessonInfoHandler(writer http.ResponseWriter, request *http.Request) {
 	if cachedSchedule == nil {
 		cachedSchedule, err = schedule.DownloadSchedule()
 		if err != nil {
-			http.Error(writer, "could not download schedule", http.StatusInternalServerError)
+			http.Error(writer, "could not download schedule: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}

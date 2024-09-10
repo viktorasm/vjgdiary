@@ -1,0 +1,11 @@
+version = 0.1
+
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "vjgdiary"
+region = "eu-central-1"
+capabilities = "CAPABILITY_IAM"
+api_key_required = false
+resolve_s3 = true
+s3_prefix = "vjgdiary"
+image_repositories = []
