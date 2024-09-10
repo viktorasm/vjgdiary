@@ -38,7 +38,8 @@ type ClassDate struct {
 const scheduleLocation = "https://vjg.edupage.org/timetable/server/regulartt.js?__func=regularttGetData"
 
 func DownloadSchedule() (*Schedule, error) {
-	resp, err := http.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
+	c := http.Client{Timeout: time.Second * 60}
+	resp, err := c.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
 	if err != nil {
 		return nil, fmt.Errorf("downloading schedule: %w", err)
 	}
