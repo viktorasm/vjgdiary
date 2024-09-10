@@ -1,0 +1,39 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaHandler:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      FunctionName: vjgdienynas-api
+      Runtime: provided.al2023
+      CodeUri: .
+      Handler: bootstrap
+      Architectures:
+        - x86_64
+      Timeout: 20
+      Events:
+        RootPath:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+            ApiId: !Ref DefaultHttpAPI
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            ApiId: !Ref DefaultHttpAPI
+
+  DefaultHttpAPI:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+
+  LambdaHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LambdaHandler}
+      RetentionInDays: 1
+
