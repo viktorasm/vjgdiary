@@ -148,7 +148,11 @@ func lessonInfoHandler(writer http.ResponseWriter, request *http.Request) {
 			return
 		}
 	}
-	enrichLessonsWithSchedule(lessons, cachedSchedule)
+
+	if err := enrichLessonsWithSchedule(lessons, cachedSchedule); err != nil {
+		http.Error(writer, "failed to enrich lessons with schedule: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	respondWithJson(writer, lessons)
 }

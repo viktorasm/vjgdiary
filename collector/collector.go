@@ -46,9 +46,8 @@ func (c *Collector) Login(user string, password string) error {
 		c.LoginToken = u.Query().Get("token")
 		c.c.OnHTMLDetach(tokenSelector)
 	})
-	var err error
 
-	err = c.c.Post(remoteLocation+"/index.php?page=login&lng=&token=", map[string]string{
+	err := c.c.Post(remoteLocation+"/index.php?page=login&lng=&token=", map[string]string{
 		"login_u": user,
 		"login_p": password,
 	})
