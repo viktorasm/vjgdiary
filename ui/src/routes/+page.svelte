@@ -5,6 +5,8 @@
     import moment from 'moment';
     import { onMount } from 'svelte';
     import axios from 'axios';
+    import Title from "$lib/components/title.svelte";
+
 
     export function formatRelativeDate(date: Date): string {
         return moment(date).fromNow();
@@ -96,6 +98,9 @@
         return differenceInMilliseconds < oneDayInMilliseconds;
     }
 </script>
+
+<Title title=""/>
+
 
 {#if loggedIn}
 <div class="flex flex-col items-center justify-center md:p-6 md:py-8">

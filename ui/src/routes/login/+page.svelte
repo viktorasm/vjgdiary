@@ -1,5 +1,8 @@
+
+
 <script lang="ts">
     import {goto} from "$app/navigation";
+    import Title from "$lib/components/title.svelte";
     import axios from 'axios';
 
 
@@ -34,16 +37,18 @@
     };
 </script>
 
-<div class="flex flex-col items-center justify-center px-6 py-8 mx-auto  md:h-screen">
+<Title title="Login"/>
+
+<div class="flex flex-col items-center justify-center sm:p-6 sm:py-8 mx-auto  h-screen">
     <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
 
 
-<div class="p-6 space-y-4 md:space-y-6 sm:p-8 " class:display-none={loading}>
+<div class="p-6 space-y-4 md:space-y-6  " class:display-none={loading}>
     <h1>VJG dienynas</h1>
     <form class="space-y-4 md:space-y-6" on:submit|preventDefault={handleSubmit}>
         <div>
             <label for="userid" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"  >Mokinio ID</label>
-            <input type="number" name="userid" id="userid" bind:value={username} class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="12345" required="">
+            <input type="tel" inputmode="numeric" name="userid" id="userid" bind:value={username} class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="12345" required="">
         </div>
         <div>
             <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" >Slaptažodis</label>
@@ -70,4 +75,5 @@
 
 
 </div>
+    <div class="p-4 text-sm"><a href="https://github.com/viktorasm/vjgdiary" class="text-gray-400">github</a></div>
 </div>
