@@ -98,8 +98,8 @@
 </script>
 
 {#if loggedIn}
-<div class="flex flex-col items-center justify-center p-6 py-8">
-    <div class="w-full bg-white shadow dark:border md:mt-0  p-6 dark:bg-gray-800 dark:border-gray-700">
+<div class="flex flex-col items-center justify-center md:p-6 md:py-8">
+    <div class="w-full bg-white shadow dark:border md:mt-0  md:p-6 p-2 dark:bg-gray-800 dark:border-gray-700">
 
     <h1>{loggedIn.name}</h1>
     <a href="logout" on:click={handleLogout}>Logout</a>
@@ -111,7 +111,7 @@
         {#each $lessonsByDiscipline as [lessonDiscipline, lessons]}
             {@const nextDate = lessons[0].nextDates?new Date(lessons[0].nextDates[0]):null }
             {@const isNextDay = isDifferenceLessThanADay(nextDate, new Date()) }
-            <li class="py-3 sm:py-4 pl-3">
+            <li class="py-3 sm:py-4">
                 <div class="mb-3">
                     <p class="font-medium text-xl text-cyan-900 truncate dark:text-white">{lessonDiscipline} <span class="ml-2 text-gray-500 text-sm">{lessons[0].teacher}</span></p>
                 </div>
@@ -122,14 +122,14 @@
 
                 <p class="mt-2 mb-1 text-sm">Buvusios pamokos:</p>
 
-                <div class="ml-3">
+                <div class="">
                     {#each lessons as lesson, index}
                         {@const day = new Date(lesson.day) }
 
                         <div class="{index==0?'text-md':'text-sm text-gray-600'} mb-2">
                             <p ><span class="text-xs text-gray-500">{day.toLocaleDateString("lt")} ({formatRelativeDate(day)})</span></p>
                             <div class="flex flex-row">
-                                <div class="justify-start flex-1 dark:text-red-500">
+                                <div class="pr-2 justify-start flex-1 dark:text-red-500">
                                     {lesson.topic}
                                 </div>
 
