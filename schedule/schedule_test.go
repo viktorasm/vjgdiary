@@ -14,7 +14,8 @@ func Test_parseSchedule(t *testing.T) {
 	//}
 	//s := Schedule{}
 	// require.NoError(t, json.Unmarshal(contents, &s))
-	s, err := DownloadSchedule()
+	d := NewDownloader()
+	s, err := d.GetSchedule()
 	require.NoError(t, err)
 
 	result, err := GetNextClassDates("5d", s)

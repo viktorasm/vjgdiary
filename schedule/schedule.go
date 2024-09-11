@@ -40,8 +40,38 @@ type ClassDate struct {
 const scheduleLocation = "https://vjg.edupage.org/timetable/server/regulartt.js?__func=regularttGetData"
 
 type Downloader struct {
-	mu sync.Mutex
-	S  *Schedule
+	mu     sync.Mutex
+	S      *Schedule
+	client *http.Client
+}
+
+func NewDownloader() *Downloader {
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout: 40 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 40 * time.Second,
+	}
+
+	c := &http.Client{
+		Timeout:   60 * time.Second, // Overall request timeout
+		Transport: transport,
+	}
+
+	return &Downloader{
+		client: c,
+	}
+}
+
+func (d *Downloader) CheckConnection() error {
+	resp, err := d.client.Get(scheduleLocation)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+	return nil
 }
 
 func (d *Downloader) GetSchedule() (*Schedule, error) {
@@ -49,8 +79,8 @@ func (d *Downloader) GetSchedule() (*Schedule, error) {
 	defer d.mu.Unlock()
 
 	if d.S == nil {
-		println("downloading schedule")
-		s, err := DownloadSchedule()
+		println("downloading schedule 2")
+		s, err := d.downloadSchedule()
 		if err != nil {
 			fmt.Printf("failed to download: %v\n", err)
 			return nil, err
@@ -62,22 +92,11 @@ func (d *Downloader) GetSchedule() (*Schedule, error) {
 	return d.S, nil
 }
 
-var DefaultDownloader = &Downloader{}
+var DefaultDownloader = NewDownloader()
 
-func DownloadSchedule() (*Schedule, error) {
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout: 30 * time.Second,
-	}
+func (d *Downloader) downloadSchedule() (*Schedule, error) {
 
-	c := &http.Client{
-		Timeout:   60 * time.Second, // Overall request timeout
-		Transport: transport,
-	}
-
-	resp, err := c.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
+	resp, err := d.client.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
 	if err != nil {
 		return nil, fmt.Errorf("downloading schedule: %w", err)
 	}
