@@ -126,8 +126,6 @@ func loginHandler(writer http.ResponseWriter, request *http.Request) {
 	})
 }
 
-var cachedSchedule *schedule.Schedule
-
 func lessonInfoHandler(writer http.ResponseWriter, request *http.Request) {
 	c := loginCollector(writer, request)
 	if c == nil {
@@ -141,15 +139,13 @@ func lessonInfoHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	// enrich with timing data
-	if cachedSchedule == nil {
-		cachedSchedule, err = schedule.DownloadSchedule()
-		if err != nil {
-			http.Error(writer, "could not download schedule: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+	sched, err := schedule.DefaultDownloader.GetSchedule()
+	if err != nil {
+		http.Error(writer, "could not download schedule: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	if err := enrichLessonsWithSchedule(lessons, cachedSchedule); err != nil {
+	if err := enrichLessonsWithSchedule(lessons, sched); err != nil {
 		http.Error(writer, "failed to enrich lessons with schedule: "+err.Error(), http.StatusInternalServerError)
 		return
 	}

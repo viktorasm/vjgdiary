@@ -31,13 +31,11 @@ func NewCollector() *Collector {
 func (c *Collector) Login(user string, password string) error {
 	c.c.OnHTML("#top_bar > div.left.studentname > ul > li > table > tbody > tr:nth-child(1) > td:nth-child(2) > span:nth-child(1)", func(element *colly.HTMLElement) {
 		c.StudentName = element.Text
-		println("student name: " + c.StudentName)
 	})
 
 	const tokenSelector = "a[href^='index.php?page=login&token=']"
 	c.c.OnHTML(tokenSelector, func(e *colly.HTMLElement) {
 		href := e.Attr("href")
-		println("href:", href)
 
 		u, err := url.Parse(href)
 		if err != nil {
@@ -66,11 +64,13 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 	lessonsByID := map[string]*LessonInfo{}
 
 	lessonInfoCollector := c.c.Clone()
+	lessonInfoCollector.Async = true
+	lessonInfoCollector.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 10})
 
 	lessonInfoCollector.OnResponse(func(response *colly.Response) {
 		resp, err := parseLessonInfoResponse(string(response.Body))
 		if err != nil {
-			println("FAILED TO PARSE")
+			println("FAILED TO PARSE", err.Error())
 			return
 		}
 		lessonInfo := lessonsByID[response.Request.URL.Query().Get("id")]
@@ -92,7 +92,7 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 				monthText := strings.Split(id, "_")[1]
 				month, err := strconv.Atoi(monthText)
 				if err != nil {
-					println("FAILED TO PARSE month/day: %s", monthText)
+					fmt.Printf("FAILED TO PARSE month/day: %s\n", monthText)
 					return
 				}
 				th.ForEach("table.marks_table_days tr:nth-child(2)", func(i int, td *colly.HTMLElement) {
@@ -141,6 +141,8 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	lessonInfoCollector.Wait()
 
 	result := lo.Values(lessonsByID)
 	slices.SortFunc(result, func(e *LessonInfo, e2 *LessonInfo) int {

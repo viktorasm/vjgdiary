@@ -19,11 +19,11 @@ func TestServer(t *testing.T) {
 	r.Equal(http.StatusOK, resp.Code)
 
 	resp = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodGet, "/index.html", nil)
+	req = httptest.NewRequest(http.MethodGet, "/login", nil)
 	s.ServeHTTP(resp, req)
 
-	r.Equal(http.StatusMovedPermanently, resp.Code)
-	r.Equal("./", resp.Header().Get("Location"))
+	r.Equal(http.StatusFound, resp.Code)
+	r.Equal("/", resp.Header().Get("Location"))
 
 	resp = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/_app/env.js", nil)

@@ -22,18 +22,30 @@ func TestHandler(t *testing.T) {
 
 	handler := BuildHandler()
 
-	result, err := handler(context.Background(), events.APIGatewayV2HTTPRequest{
-		RawPath:        "/api/lesson-info",
-		RawQueryString: "",
-		Cookies:        nil,
-		Headers: map[string]string{
-			"METHOD": "POST",
+	loginResult, err := handler(context.Background(), events.APIGatewayV2HTTPRequest{
+		RawPath: "/api/login",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: "POST",
+			},
 		},
+		Body: toJSON(t, &LoginRequest{
+			Username: user,
+			Password: password,
+		}),
+	})
+	r.NoError(err)
+	r.Equal(http.StatusOK, loginResult.StatusCode)
+
+	lessonInfoResult, err := handler(context.Background(), events.APIGatewayV2HTTPRequest{
+		RawPath:               "/api/lesson-info",
+		RawQueryString:        "",
+		Cookies:               loginResult.Cookies,
 		QueryStringParameters: nil,
 		PathParameters:        nil,
 		RequestContext: events.APIGatewayV2HTTPRequestContext{
 			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
-				Method: "POST",
+				Method: "GET",
 			},
 		},
 		StageVariables: nil,
@@ -44,9 +56,9 @@ func TestHandler(t *testing.T) {
 		IsBase64Encoded: false,
 	})
 	r.NoError(err)
-	r.Equal(http.StatusOK, result.StatusCode)
+	r.Equal(http.StatusOK, lessonInfoResult.StatusCode)
 
-	println(result.Body)
+	println(lessonInfoResult.Body)
 }
 
 func toJSON(t testing.TB, v interface{}) string {

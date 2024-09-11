@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -37,8 +38,34 @@ type ClassDate struct {
 // schedule is public, no authentication needed
 const scheduleLocation = "https://vjg.edupage.org/timetable/server/regulartt.js?__func=regularttGetData"
 
+type Downloader struct {
+	mu sync.Mutex
+	S  *Schedule
+}
+
+func (d *Downloader) GetSchedule() (*Schedule, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.S == nil {
+		println("downloading schedule")
+		s, err := DownloadSchedule()
+		if err != nil {
+			println("failed to download: %v", err)
+			return nil, err
+		}
+		println("download complete")
+		d.S = s
+	}
+
+	return d.S, nil
+}
+
+var DefaultDownloader = &Downloader{}
+
 func DownloadSchedule() (*Schedule, error) {
 	c := http.Client{Timeout: time.Second * 60}
+
 	resp, err := c.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
 	if err != nil {
 		return nil, fmt.Errorf("downloading schedule: %w", err)
