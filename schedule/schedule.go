@@ -51,7 +51,7 @@ func (d *Downloader) GetSchedule() (*Schedule, error) {
 		println("downloading schedule")
 		s, err := DownloadSchedule()
 		if err != nil {
-			println("failed to download: %v", err)
+			fmt.Printf("failed to download: %v\n", err)
 			return nil, err
 		}
 		println("download complete")

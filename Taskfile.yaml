@@ -1,0 +1,29 @@
+# https://taskfile.dev/installation/
+
+version: '3'
+
+
+vars:
+  # small protection from deploying to wrong account
+  EXPECTED_AWS_ACCOUNT_ID: "647278206015"
+
+
+dotenv: ['.env']
+
+tasks:
+  lint:
+    cmds:
+      - golangci-lint run --fix ./...
+      - sam validate --lint
+  deploy:
+    cmds:
+      - |
+        echo "Checking AWS account..."
+        CURRENT_AWS_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+        if [ "$CURRENT_AWS_ACCOUNT" != "{{.EXPECTED_AWS_ACCOUNT_ID}}" ]; then
+          echo "Error: Incorrect AWS account. Expected {{.EXPECTED_AWS_ACCOUNT_ID}}, but got $CURRENT_AWS_ACCOUNT."
+          exit 1
+        fi
+      - cd ui && npm run build
+      - sam build
+      - sam deploy

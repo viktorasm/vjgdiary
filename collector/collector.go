@@ -65,7 +65,10 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 
 	lessonInfoCollector := c.c.Clone()
 	lessonInfoCollector.Async = true
-	lessonInfoCollector.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 10})
+	err := lessonInfoCollector.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 10})
+	if err != nil {
+		return nil, fmt.Errorf("setting up collectors: %w", err)
+	}
 
 	lessonInfoCollector.OnResponse(func(response *colly.Response) {
 		resp, err := parseLessonInfoResponse(string(response.Body))
@@ -137,8 +140,7 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 
 	})
 
-	err := c.c.Visit(fmt.Sprintf(remoteLocation+"/marks.php?time=%d&token=%s&semester=87&alldays=0&final=0", timestamp, c.LoginToken))
-	if err != nil {
+	if err := c.c.Visit(fmt.Sprintf(remoteLocation+"/marks.php?time=%d&token=%s&semester=87&alldays=0&final=0", timestamp, c.LoginToken)); err != nil {
 		return nil, err
 	}
 
