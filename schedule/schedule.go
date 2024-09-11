@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"slices"
 	"sync"
@@ -64,7 +65,17 @@ func (d *Downloader) GetSchedule() (*Schedule, error) {
 var DefaultDownloader = &Downloader{}
 
 func DownloadSchedule() (*Schedule, error) {
-	c := http.Client{Timeout: time.Second * 60}
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 30 * time.Second,
+	}
+
+	c := &http.Client{
+		Timeout:   60 * time.Second, // Overall request timeout
+		Transport: transport,
+	}
 
 	resp, err := c.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
 	if err != nil {
