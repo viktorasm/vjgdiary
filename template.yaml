@@ -1,5 +1,58 @@
 Transform: AWS::Serverless-2016-10-31
 Resources:
+# lambdas need NAT gateway to exit VPC bounds. what a bummer. will run this outside VPC.
+
+#  VPC:
+#    Type: AWS::EC2::VPC
+#    Properties:
+#      CidrBlock: 10.0.0.0/16
+#
+#  InternetGateway:
+#    Type: AWS::EC2::InternetGateway
+#
+#  VPCGatewayAttachment:
+#    Type: AWS::EC2::VPCGatewayAttachment
+#    Properties:
+#      VpcId: !Ref VPC
+#      InternetGatewayId: !Ref InternetGateway
+#
+#  PublicRouteTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId: !Ref VPC
+#
+#  PublicRoute:
+#    Type: AWS::EC2::Route
+#    Properties:
+#      RouteTableId: !Ref PublicRouteTable
+#      DestinationCidrBlock: 0.0.0.0/0
+#      GatewayId: !Ref InternetGateway
+#
+#  PublicSubnet1:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      VpcId: !Ref VPC
+#      CidrBlock: 10.0.1.0/24
+#      MapPublicIpOnLaunch: true
+#
+#  PublicSubnet1RouteTableAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet1
+#      RouteTableId: !Ref PublicRouteTable
+#
+#  LambdaSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: "Lambda security group"
+#      VpcId: !Ref VPC
+#
+#
+  CacheBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: vjgdienynas-cache
+
   LambdaHandler:
     Type: AWS::Serverless::Function
     Metadata:
@@ -12,6 +65,29 @@ Resources:
       Architectures:
         - x86_64
       Timeout: 60
+#      VpcConfig:
+#        SecurityGroupIds:
+#          - !Ref LambdaSecurityGroup
+#        SubnetIds:
+#          - !Ref PublicSubnet1
+      Policies:
+        - S3Policy:
+            BucketName: !Ref MyS3Bucket
+            PolicyName: LambdaS3Policy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:PutObject
+                    - s3:ListBucket
+                  Resource:
+                    - !Sub "arn:aws:s3:::${MyS3Bucket}"
+                    - !Sub "arn:aws:s3:::${MyS3Bucket}/*"
+      Environment:
+        Variables:
+          CACHE_BUCKET: !Ref CacheBucket
       Events:
         RootPath:
           Type: HttpApi

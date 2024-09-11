@@ -64,7 +64,13 @@ func NewDownloader() *Downloader {
 }
 
 func (d *Downloader) CheckConnection() error {
-	resp, err := d.client.Get(scheduleLocation)
+	req, err := http.NewRequest("GET", scheduleLocation, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("User-Agent", "MyCustomUserAgent/1.0")
+
+	resp, err := d.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -96,7 +102,13 @@ var DefaultDownloader = NewDownloader()
 
 func (d *Downloader) downloadSchedule() (*Schedule, error) {
 
-	resp, err := d.client.Post(scheduleLocation, "application/json", bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
+	req, err := http.NewRequest("POST", scheduleLocation, bytes.NewBufferString(`{"__args":[null,"48"],"__gsh":"00000000"}`))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("User-Agent", "MyCustomUserAgent/1.0")
+
+	resp, err := d.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("downloading schedule: %w", err)
 	}
