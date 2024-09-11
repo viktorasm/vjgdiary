@@ -13,7 +13,10 @@ func main() {
 }
 
 func BuildHandler() func(ctx context.Context, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	s := BuildServer()
+	s, err := BuildServer()
+	if err != nil {
+		panic(err)
+	}
 	adapter := gorillamux.NewV2(s)
 	return adapter.ProxyWithContext
 }

@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"context"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -14,8 +15,9 @@ func Test_parseSchedule(t *testing.T) {
 	//}
 	//s := Schedule{}
 	// require.NoError(t, json.Unmarshal(contents, &s))
-	d := NewDownloader()
-	s, err := d.GetSchedule()
+	d, err := NewDownloader()
+	require.NoError(t, err)
+	s, err := d.GetSchedule(context.Background())
 	require.NoError(t, err)
 
 	result, err := GetNextClassDates("5d", s)

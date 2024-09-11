@@ -2,14 +2,17 @@ package schedule
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"slices"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/samber/lo"
 )
 
@@ -40,12 +43,13 @@ type ClassDate struct {
 const scheduleLocation = "https://vjg.edupage.org/timetable/server/regulartt.js?__func=regularttGetData"
 
 type Downloader struct {
-	mu     sync.Mutex
-	S      *Schedule
-	client *http.Client
+	mu       sync.Mutex
+	Schedule *Schedule
+	client   *http.Client
+	cache    *Cache
 }
 
-func NewDownloader() *Downloader {
+func NewDownloader() (*Downloader, error) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: 40 * time.Second,
@@ -58,33 +62,34 @@ func NewDownloader() *Downloader {
 		Transport: transport,
 	}
 
-	return &Downloader{
+	d := &Downloader{
 		client: c,
 	}
+
+	cacheBucket := os.Getenv("CACHE_BUCKET")
+	if cacheBucket != "" {
+		cache, err := NewCache(cacheBucket)
+		if err != nil {
+			return nil, fmt.Errorf("creating cache: %w", err)
+		}
+		d.cache = cache
+	}
+
+	return d, nil
 }
 
-func (d *Downloader) CheckConnection() error {
-	req, err := http.NewRequest("GET", scheduleLocation, nil)
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-	req.Header.Set("User-Agent", "MyCustomUserAgent/1.0")
-
-	resp, err := d.client.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-	return nil
-}
-
-func (d *Downloader) GetSchedule() (*Schedule, error) {
+func (d *Downloader) GetSchedule(ctx context.Context) (*Schedule, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.S == nil {
+	if d.Schedule == nil {
+		err := d.restoreCache(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("restoring cache: %w", err)
+		}
+	}
+
+	if d.Schedule == nil {
 		println("downloading schedule 2")
 		s, err := d.downloadSchedule()
 		if err != nil {
@@ -92,13 +97,15 @@ func (d *Downloader) GetSchedule() (*Schedule, error) {
 			return nil, err
 		}
 		println("download complete")
-		d.S = s
+		d.Schedule = s
+
+		if err := d.updateCache(ctx); err != nil {
+			return nil, err
+		}
 	}
 
-	return d.S, nil
+	return d.Schedule, nil
 }
-
-var DefaultDownloader = NewDownloader()
 
 func (d *Downloader) downloadSchedule() (*Schedule, error) {
 
@@ -106,7 +113,7 @@ func (d *Downloader) downloadSchedule() (*Schedule, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
-	req.Header.Set("User-Agent", "MyCustomUserAgent/1.0")
+	req.Header.Set("User-Agent", "Mozilla/5.0"+uuid.New().String())
 
 	resp, err := d.client.Do(req)
 	if err != nil {
@@ -118,6 +125,37 @@ func (d *Downloader) downloadSchedule() (*Schedule, error) {
 		return nil, fmt.Errorf("reading json: %w", err)
 	}
 	return &s, nil
+}
+
+func (d *Downloader) updateCache(ctx context.Context) error {
+	if d.cache == nil {
+		return nil
+	}
+
+	contents, err := json.Marshal(d.Schedule)
+	if err != nil {
+		return err
+	}
+
+	return d.cache.Write(ctx, "schedule.json", contents)
+}
+
+func (d *Downloader) restoreCache(ctx context.Context) error {
+	if d.cache == nil {
+		return nil
+	}
+	contents, err := d.cache.Read(ctx, "schedule.json")
+	if err != nil {
+		return fmt.Errorf("reading contents: %w", err)
+	}
+	var schedule Schedule
+
+	if err := json.Unmarshal(contents, &schedule); err != nil {
+		return fmt.Errorf("unmarshalling cache: %w", err)
+	}
+
+	d.Schedule = &schedule
+	return nil
 }
 
 func GetNextClassDates(classID string, s *Schedule) ([]ClassDate, error) {

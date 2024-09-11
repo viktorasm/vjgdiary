@@ -9,12 +9,13 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	s := BuildServer()
+	r := require.New(t)
+	s, err := BuildServer()
+	r.NoError(err)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	s.ServeHTTP(resp, req)
-	r := require.New(t)
 
 	r.Equal(http.StatusOK, resp.Code)
 

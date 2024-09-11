@@ -52,6 +52,11 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: vjgdienynas-cache
+      LifecycleConfiguration:
+        Rules:
+          - Id: 'ExpireOldObjects'
+            Status: 'Enabled'
+            ExpirationInDays: 1
 
   LambdaHandler:
     Type: AWS::Serverless::Function
@@ -71,20 +76,8 @@ Resources:
 #        SubnetIds:
 #          - !Ref PublicSubnet1
       Policies:
-        - S3Policy:
-            BucketName: !Ref MyS3Bucket
-            PolicyName: LambdaS3Policy
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - s3:GetObject
-                    - s3:PutObject
-                    - s3:ListBucket
-                  Resource:
-                    - !Sub "arn:aws:s3:::${MyS3Bucket}"
-                    - !Sub "arn:aws:s3:::${MyS3Bucket}/*"
+        - S3FullAccessPolicy:
+            BucketName: !Ref CacheBucket
       Environment:
         Variables:
           CACHE_BUCKET: !Ref CacheBucket

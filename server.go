@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -25,7 +26,7 @@ type LoginResponse struct {
 	Name string `json:"name"`
 }
 
-func BuildServer() *mux.Router {
+func BuildServer() (*mux.Router, error) {
 	// Create a new ServeMux router
 	mux := mux.NewRouter()
 
@@ -34,7 +35,12 @@ func BuildServer() *mux.Router {
 	api.HandleFunc("/login", loggedInHandler).Methods("GET")
 	api.HandleFunc("/login", loginHandler).Methods("POST")
 	api.HandleFunc("/logout", logoutHandler).Methods("POST")
-	api.HandleFunc("/lesson-info", lessonInfoHandler).Methods("GET")
+
+	h, err := lessonInfoHandler()
+	if err != nil {
+		return nil, fmt.Errorf("creating lesson info handler: %w", err)
+	}
+	api.HandleFunc("/lesson-info", h).Methods("GET")
 
 	rootDir, err := fs2.Sub(ui.Build, "build")
 	if err != nil {
@@ -53,7 +59,7 @@ func BuildServer() *mux.Router {
 		writer.WriteHeader(http.StatusFound)
 	})
 
-	return mux
+	return mux, nil
 	//err := http.ListenAndServe(fmt.Sprintf(":%d", &cfg.Port), mux)
 	//if err != nil {
 	//	fmt.Println("Error starting server:", err)
@@ -75,14 +81,6 @@ func logoutHandler(writer http.ResponseWriter, request *http.Request) {
 }
 
 func loggedInHandler(writer http.ResponseWriter, request *http.Request) {
-	err := schedule.DefaultDownloader.CheckConnection()
-	if err != nil {
-		println("schedule downloader error:", err.Error())
-	} else {
-		println("schedule downloader check passed")
-	}
-
-	println("checking if logged in...")
 	c := loginCollector(writer, request)
 	if c == nil {
 		return
@@ -133,31 +131,40 @@ func loginHandler(writer http.ResponseWriter, request *http.Request) {
 	})
 }
 
-func lessonInfoHandler(writer http.ResponseWriter, request *http.Request) {
-	c := loginCollector(writer, request)
-	if c == nil {
-		return
-	}
-
-	lessons, err := c.GetLessonInfos()
+func lessonInfoHandler() (func(writer http.ResponseWriter, request *http.Request), error) {
+	scheduleDownloader, err := schedule.NewDownloader()
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("creating schedule downloader: %w", err)
 	}
 
-	// enrich with timing data
-	sched, err := schedule.DefaultDownloader.GetSchedule()
-	if err != nil {
-		http.Error(writer, "could not download schedule: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	return func(writer http.ResponseWriter, request *http.Request) {
+		ctx := context.Background()
 
-	if err := enrichLessonsWithSchedule(lessons, sched); err != nil {
-		http.Error(writer, "failed to enrich lessons with schedule: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+		c := loginCollector(writer, request)
+		if c == nil {
+			return
+		}
 
-	respondWithJson(writer, lessons)
+		lessons, err := c.GetLessonInfos()
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// enrich with timing data
+		sched, err := scheduleDownloader.GetSchedule(ctx)
+		if err != nil {
+			http.Error(writer, "could not download schedule: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err := enrichLessonsWithSchedule(lessons, sched); err != nil {
+			http.Error(writer, "failed to enrich lessons with schedule: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		respondWithJson(writer, lessons)
+	}, nil
 }
 
 func respondWithJson(writer http.ResponseWriter, value any) {
