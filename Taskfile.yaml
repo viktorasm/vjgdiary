@@ -12,10 +12,12 @@ dotenv: ['.env']
 
 tasks:
   lint:
+    desc: various code and config checks
     cmds:
       - golangci-lint run --fix ./...
       - sam validate --lint
   deploy:
+    desc: rebuilds everything and deploys lambda with AWS SAM
     cmds:
       - |
         echo "Checking AWS account..."
@@ -27,3 +29,12 @@ tasks:
       - cd ui && npm run build
       - sam build
       - sam deploy
+  apiserver:
+    desc: runs API server. needs to be restarted after code changes.
+    cmds:
+      - sam local start-api
+  uiserver:
+    desc: runs UI server. has live reload; needs api server running in parallel
+    dir: ui
+    cmds:
+      - npm run dev
