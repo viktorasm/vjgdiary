@@ -75,6 +75,13 @@ func logoutHandler(writer http.ResponseWriter, request *http.Request) {
 }
 
 func loggedInHandler(writer http.ResponseWriter, request *http.Request) {
+	err := schedule.DefaultDownloader.CheckConnection()
+	if err != nil {
+		println("schedule downloader error:", err.Error())
+	} else {
+		println("schedule downloader check passed")
+	}
+
 	println("checking if logged in...")
 	c := loginCollector(writer, request)
 	if c == nil {

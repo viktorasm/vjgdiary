@@ -80,22 +80,19 @@
         goto('/login');
     }
 
-    const isDifferenceLessThanADay = (date1: Date|null, date2: Date): boolean =>  {
-        // Get the timestamps for both dates
+    // returns true if difference is no more than two days
+    const isNextDayDiff = (date1: Date|null, date2: Date): boolean =>  {
         if (!date1) {
             return false
         }
         const time1 = date1.getTime();
         const time2 = date2.getTime();
 
-        // Calculate the absolute difference
         const differenceInMilliseconds = Math.abs(time1 - time2);
 
-        // 1 day in milliseconds = 24 * 60 * 60 * 1000
         const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
-        // Check if the difference is less than 1 day
-        return differenceInMilliseconds < oneDayInMilliseconds;
+        return differenceInMilliseconds < oneDayInMilliseconds*1.3;
     }
 </script>
 
@@ -115,7 +112,7 @@
             {/if}
         {#each $lessonsByDiscipline as [lessonDiscipline, lessons]}
             {@const nextDate = lessons[0].nextDates?new Date(lessons[0].nextDates[0]):null }
-            {@const isNextDay = isDifferenceLessThanADay(nextDate, new Date()) }
+            {@const isNextDay = isNextDayDiff(nextDate, new Date()) }
             <li class="py-3 sm:py-4">
                 <div class="mb-3">
                     <p class="font-medium text-xl text-cyan-900 truncate dark:text-white">{lessonDiscipline} <span class="ml-2 text-gray-500 text-sm">{lessons[0].teacher}</span></p>
