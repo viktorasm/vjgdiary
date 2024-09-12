@@ -13,11 +13,13 @@ silent: true
 
 tasks:
   lint:
+    run: once
     desc: various code and config checks
     cmds:
       - golangci-lint run --fix ./...
       - sam validate --lint
   check-aws-account:
+    run: once
     cmds:
       - |
         echo "Checking AWS account..."
@@ -27,6 +29,7 @@ tasks:
           exit 1
         fi
   build-ui:
+    run: once
     dir: ui
     cmds:
       - npm run build
@@ -34,6 +37,7 @@ tasks:
       - node_modules/**/*
       - src/**/*
   build-sam:
+    run: once
     deps:
       - build-ui
     cmds:
@@ -44,11 +48,13 @@ tasks:
       - template.yaml
       - samconfig.toml
   clean:
+    run: once
     desc: deletes all built artifacts for clean rebuild
     cmds:
       - rm -rf ui/build
       - rm -rf .aws-sam
   deploy:
+    run: once
     desc: rebuilds everything and deploys lambda with AWS SAM
     deps:
       - check-aws-account
