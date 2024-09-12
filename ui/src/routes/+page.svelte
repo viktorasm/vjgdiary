@@ -218,9 +218,9 @@
 
 <div class="">
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
-        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
+        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl py-4 md:px-6 p-2">
             <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">VJG dienynas: {loggedIn.name}</span>
+                <span class="self-center text-2xl font-semibold dark:text-white">VJG dienynas: {loggedIn.name}</span>
             </div>
             <div class="flex items-center space-x-6 rtl:space-x-reverse">
                 <a href="" on:click={handleLogout} class="text-sm  text-blue-600 dark:text-blue-500 hover:underline">Atsijungti</a>
@@ -228,11 +228,11 @@
         </div>
     </nav>
     <nav class="bg-gray-50 dark:bg-gray-700">
-        <div class="max-w-screen-xl px-4 py-3 mx-auto">
+        <div class="max-w-screen-xl md:px-4 px-2 py-3 mx-auto">
             <div class="flex items-center">
                 <ul class="md:flex md:flex-row font-medium mt-0 rtl:space-x-reverse text-sm pt-2 pb-2">
                     {#each viewModes as viewMode}
-                    <li class="whitespace-nowrap m-1  text-gray-900 dark:text-white p-3 rounded-full {viewMode===currentViewMode?'bg-amber-100':''}">
+                    <li class="whitespace-nowrap m-0  text-gray-900 dark:text-white p-3 rounded-full {viewMode===currentViewMode?'bg-amber-100':''}">
                         <a href="" on:click={() => setViewMode(viewMode)} class=" hover:underline " aria-current="page">{viewMode.name}</a>
                     </li>
                     {/each}
@@ -275,7 +275,10 @@
                                 <p ><span class="text-xs text-gray-500">{formatDate(day)} ({formatRelativeDate(day)})</span></p>
 
                                 {#if lesson.lessonNotes}
-                                    <div class="pt-2 pb-3"><span class="font-bold">{lesson.lessonNotes.category}:</span> <span class="bg-amber-100 px-3 py-2 rounded-full">{lesson.lessonNotes.note}</span></div>
+                                    <div class="pt-2 pb-3 flex flex-col sm:flex-row">
+                                        <span class="font-bold sm:mr-2 py-2 ">{lesson.lessonNotes.category}:</span>
+                                        <span class="bg-amber-100 px-3 py-2 rounded-full">{lesson.lessonNotes.note}</span>
+                                    </div>
                                 {/if}
                                 {#if lesson.mark}
                                     <div class="font-bold">Pažymys: <span class="bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full">{lesson.mark}</span></div>
