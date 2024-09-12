@@ -122,7 +122,7 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 				discipline = element.Text
 			})
 			row.ForEach("td[id^='m_']", func(col int, colContent *colly.HTMLElement) {
-				colContent.ForEach(".marks_tr_markrow td[onclick^='tomval_AjaxCmd']", func(_ int, element *colly.HTMLElement) {
+				colContent.ForEach(".marks_tr_markrow td[onclick^='tomval_AjaxCmd'].marks_td_markL", func(_ int, element *colly.HTMLElement) {
 					lessonID := parseLessonInfoCommand(element.Attr("onclick"))
 					url := fmt.Sprintf(remoteLocation+"/lessoninfo.php?time=%d&token=%s&id=%s", timestamp, c.loginToken, lessonID)
 
@@ -131,11 +131,18 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 						return
 					}
 
-					if lessonsByID[lessonID] == nil {
-						lessonsByID[lessonID] = &LessonInfo{
-							Discipline: discipline,
-							Day:        date,
-						}
+					lessonInfo := LessonInfo{
+						Discipline:  discipline,
+						Day:         date,
+						LessonNotes: parseLessonNotes(element.Attr("onmouseover")),
+					}
+					lessonsByID[lessonID] = &lessonInfo
+
+					element.DOM.Find("span").Remove()
+					mark := strings.TrimSpace(element.DOM.Text())
+					if mark != "" {
+						lessonInfo.Mark = mark
+						println("mark detected:", mark)
 					}
 
 					_ = lessonInfoCollector.Visit(url)

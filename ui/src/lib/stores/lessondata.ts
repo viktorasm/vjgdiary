@@ -2,6 +2,12 @@
 import { writable } from 'svelte/store';
 
 
+
+export interface LessonNotes {
+    category: string
+    note: string
+}
+
 export interface LessonInfo {
     discipline: string
     topic: string
@@ -11,6 +17,9 @@ export interface LessonInfo {
     nextDates?: Date[]
 
     isNextForThisDiscipline: boolean
+
+    mark?: string
+    lessonNotes?:LessonNotes
 }
 
 

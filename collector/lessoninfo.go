@@ -11,14 +11,22 @@ import (
 )
 
 var lessonInfoRegexp = regexp.MustCompile(`tomval_AjaxCmd\('(\w+)', '(\w+)', '(\w+)', this\); return false`)
+var lessonNotesRegexp = regexp.MustCompile(`showhint\('(.*)', this, null, '', true, true\)`)
+
+type LessonNotes struct {
+	Category string `json:"category,omitempty"`
+	Note     string `json:"note,omitempty"`
+}
 
 type LessonInfo struct {
-	Discipline  string      `json:"discipline,omitempty"`
-	Day         *time.Time  `json:"day,omitempty"`
-	Teacher     string      `json:"teacher,omitempty"`
-	Topic       string      `json:"topic,omitempty"`
-	Assignments []string    `json:"assignments,omitempty"`
-	NextDates   []time.Time `json:"nextDates,omitempty"`
+	Discipline  string       `json:"discipline,omitempty"`
+	Day         *time.Time   `json:"day,omitempty"`
+	Teacher     string       `json:"teacher,omitempty"`
+	Topic       string       `json:"topic,omitempty"`
+	Assignments []string     `json:"assignments,omitempty"`
+	NextDates   []time.Time  `json:"nextDates,omitempty"`
+	Mark        string       `json:"mark,omitempty"`
+	LessonNotes *LessonNotes `json:"lessonNotes,omitempty"`
 }
 
 // parseLessonInfoCommand takes an onclick handler value and extracts lesson ID from it
@@ -28,6 +36,23 @@ func parseLessonInfoCommand(input string) string {
 		return ""
 	}
 	return m[3]
+}
+
+func parseLessonNotes(attr string) *LessonNotes {
+	m := lessonNotesRegexp.FindStringSubmatch(attr)
+	if len(m) != 2 {
+		return nil
+	}
+
+	elements := strings.Split(m[1], "</br>")
+	if len(elements) != 2 {
+		return nil
+	}
+
+	return &LessonNotes{
+		Category: strings.TrimSuffix(strings.TrimPrefix(elements[1], "<strong>"), "</strong>"),
+		Note:     elements[0],
+	}
 }
 
 // parseLessonInfoResponse takes a raw HTLM that is of a crappy BR separated plain format (no headers etc)

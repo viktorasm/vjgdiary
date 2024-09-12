@@ -49,3 +49,12 @@ func TestParseLessonInfoResponse(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseLessonNotes(t *testing.T) {
+	sampleValue := `showhint('Ačiū už aktyvų dalyvavimą pamokoje :)</br><strong>Aktyvumas ugdymo(si) procese</strong>', this, null, '', true, true)`
+	result := parseLessonNotes(sampleValue)
+	r := require.New(t)
+	r.NotNil(result)
+	r.Equal("Ačiū už aktyvų dalyvavimą pamokoje :)", result.Note)
+	r.Equal("Aktyvumas ugdymo(si) procese", result.Category)
+}

@@ -185,6 +185,11 @@
 
                             <div class="{lesson.isNextForThisDiscipline?'text-md':'text-sm text-gray-600'} mb-3">
                                 <p ><span class="text-xs text-gray-500">{formatDate(day)} ({formatRelativeDate(day)})</span></p>
+
+                                {#if lesson.mark}
+                                    <div class="font-bold">Pažymys: <span class="bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full">{lesson.mark}</span></div>
+                                {/if}
+
                                 <div class="flex flex-row">
                                     <div class="pr-2 justify-start flex-1 dark:text-red-500">
                                         {lesson.topic}

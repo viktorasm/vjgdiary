@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
 
@@ -220,6 +221,9 @@ func enrichLessonsWithSchedule(lessons []*collector.LessonInfo, s *schedule.Sche
 		for _, d := range item[1:] {
 			result.Dates = append(result.Dates, d.Dates...)
 		}
+		slices.SortFunc(result.Dates, func(a, b time.Time) int {
+			return a.Compare(b)
+		})
 		return result
 	})
 
@@ -243,6 +247,7 @@ func enrichLessonsWithSchedule(lessons []*collector.LessonInfo, s *schedule.Sche
 			nextDates := lo.Filter(disciplineInfo.Dates, func(item time.Time, _ int) bool {
 				return item.After(now)
 			})
+			spew.Dump(discipline, nextDates)
 
 			for _, l := range disciplineLessons {
 				l.NextDates = nextDates
