@@ -9,6 +9,7 @@ vars:
 
 
 dotenv: ['.env']
+silent: true
 
 tasks:
   lint:
@@ -16,8 +17,7 @@ tasks:
     cmds:
       - golangci-lint run --fix ./...
       - sam validate --lint
-  deploy:
-    desc: rebuilds everything and deploys lambda with AWS SAM
+  check-aws-account:
     cmds:
       - |
         echo "Checking AWS account..."
@@ -26,13 +26,27 @@ tasks:
           echo "Error: Incorrect AWS account. Expected {{.EXPECTED_AWS_ACCOUNT_ID}}, but got $CURRENT_AWS_ACCOUNT."
           exit 1
         fi
-      - cd ui && npm run build
+  build-ui:
+    dir: ui
+    cmds:
+      - npm run build
+  build-sam:
+    cmds:
       - sam build
+  deploy:
+    desc: rebuilds everything and deploys lambda with AWS SAM
+    deps:
+      - check-aws-account
+      - lint
+      - build-ui
+      - build-sam
+    cmds:
       - sam deploy
   apiserver:
     desc: runs API server. needs to be restarted after code changes.
+    deps:
+      - build-sam
     cmds:
-      - sam build
       - sam local start-api --env-vars local-env-vars.json
   uiserver:
     desc: runs UI server. has live reload; needs api server running in parallel
