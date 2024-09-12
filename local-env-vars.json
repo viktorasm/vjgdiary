@@ -1,0 +1,5 @@
+{
+ "LambdaHandler": {
+   "CACHE_BUCKET": ""
+ }
+}

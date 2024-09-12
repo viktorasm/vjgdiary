@@ -3,6 +3,7 @@ package schedule
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,10 @@ func Test_parseSchedule(t *testing.T) {
 	s, err := d.GetSchedule(context.Background())
 	require.NoError(t, err)
 
-	result, err := GetNextClassDates("5d", s)
+	weekAhead := time.Now().Add(time.Hour * 24 * 7)
+	monthBack := weekAhead.Add(-time.Hour * 24 * 30)
+
+	result, err := GetClassDates("5d", s, monthBack, weekAhead)
 	require.NoError(t, err)
 	spew.Dump(result)
 }

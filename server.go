@@ -8,7 +8,9 @@ import (
 	fs2 "io/fs"
 	"net/http"
 	"slices"
+	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
 
@@ -205,19 +207,59 @@ func loginCollector(writer http.ResponseWriter, request *http.Request) *collecto
 }
 
 func enrichLessonsWithSchedule(lessons []*collector.LessonInfo, s *schedule.Schedule) error {
-	dates, err := schedule.GetNextClassDates("5d", s)
+	now := time.Now()
+	weekAhead := now.Add(time.Hour * 24 * 7)
+	monthBack := weekAhead.Add(-time.Hour * 24 * 30)
+	dates, err := schedule.GetClassDates("5d", s, monthBack, weekAhead)
 	if err != nil {
 		return fmt.Errorf("getting class dates: %w", err)
 	}
-	datesByDiscipline := lo.KeyBy(dates, func(item schedule.ClassDate) string {
+	datesByDiscipline := lo.MapValues(lo.GroupBy(dates, func(item schedule.ClassDate) string {
 		return schedule.ToInternalName(item.Name)
+	}), func(item []schedule.ClassDate, _ string) schedule.ClassDate {
+		result := item[0]
+		for _, d := range item[1:] {
+			result.Dates = append(result.Dates, d.Dates...)
+		}
+		return result
+	})
+	spew.Dump(datesByDiscipline)
+
+	// tricky bit is to figure out which lesson is which when there are two on the same day. group everything by day and map it like this.
+	lessonsByDay := lo.GroupBy(lessons, func(item *collector.LessonInfo) string {
+		return item.Day.Format(time.DateOnly)
 	})
 
-	for _, l := range lessons {
-		if disciplineData, ok := datesByDiscipline[l.Discipline]; ok {
-			l.NextDates = disciplineData.Dates
-		} else {
-			println("could not find discipline dates for", l.Discipline)
+	for day, daysLessons := range lessonsByDay {
+		daysLessonsByDiscipline := lo.GroupBy(daysLessons, func(item *collector.LessonInfo) string {
+			return item.Discipline
+		})
+
+		for discipline, disciplineLessons := range daysLessonsByDiscipline {
+			disciplineInfo, ok := datesByDiscipline[discipline]
+			if !ok {
+				println("could not find discipline dates for", discipline)
+				continue
+			}
+
+			nextDates := lo.Filter(disciplineInfo.Dates, func(item time.Time, _ int) bool {
+				return item.After(now)
+			})
+
+			for _, l := range disciplineLessons {
+				l.NextDates = nextDates
+			}
+
+			sameDayDisciplineDates := lo.Filter(disciplineInfo.Dates, func(item time.Time, _ int) bool {
+				return item.Format(time.DateOnly) == day
+			})
+
+			// assign sameDayDisciplineDates to disciplineLessons date. ideally number of both should match
+			for index, l := range disciplineLessons {
+				adjustedDate := getItemOrLast(sameDayDisciplineDates, index)
+				fmt.Printf("correcting %s: %v -> %v\n", discipline, l.Day, adjustedDate)
+				l.Day = lo.ToPtr(adjustedDate)
+			}
 		}
 	}
 
@@ -236,4 +278,11 @@ func enrichLessonsWithSchedule(lessons []*collector.LessonInfo, s *schedule.Sche
 		return a.NextDates[0].Compare(b.NextDates[0])
 	})
 	return nil
+}
+
+func getItemOrLast(items []time.Time, index int) time.Time {
+	if len(items) > index {
+		return items[index]
+	}
+	return items[len(items)-1]
 }

@@ -158,7 +158,7 @@ func (d *Downloader) restoreCache(ctx context.Context) error {
 	return nil
 }
 
-func GetNextClassDates(classID string, s *Schedule) ([]ClassDate, error) {
+func GetClassDates(classID string, s *Schedule, timeFrom time.Time, timeTo time.Time) ([]ClassDate, error) {
 	tableByID := lo.KeyBy(s.R.DbiAccessorRes.Tables, func(item Table) string {
 		return item.ID
 	})
@@ -206,7 +206,9 @@ func GetNextClassDates(classID string, s *Schedule) ([]ClassDate, error) {
 				return nil, fmt.Errorf("parsing time: %w", err)
 			}
 
-			dates.Dates = append(dates.Dates, nextDate(t, card["days"].(string)))
+			classDate := getClassDateByWeekday(t, card["days"].(string))
+
+			dates.Dates = append(dates.Dates, extrapolateClassDates(classDate, timeFrom, timeTo)...)
 		}
 		slices.SortFunc(dates.Dates, func(a, b time.Time) int {
 			return a.Compare(b)
@@ -238,11 +240,25 @@ func maskToWeekday(mask string) time.Weekday {
 	panic("unknown weekday " + mask)
 }
 
-func nextDate(t time.Time, mask string) time.Time {
+func getClassDateByWeekday(t time.Time, mask string) time.Time {
 	result := t.AddDate(0, 0, int((maskToWeekday(mask)-t.Weekday()+7)%7))
 
-	if result.Before(time.Now()) {
-		result = result.AddDate(0, 0, 7)
+	return result
+}
+
+func extrapolateClassDates(date time.Time, from time.Time, to time.Time) []time.Time {
+	// find first date that is after "from". go back first to ensure that date<from, then forward until we get first one after the period
+	for date.After(from) {
+		date = date.AddDate(0, 0, -7)
+	}
+	for !date.After(from) {
+		date = date.AddDate(0, 0, 7)
+	}
+
+	var result []time.Time
+	for !date.After(to) {
+		result = append(result, date)
+		date = date.AddDate(0, 0, 7)
 	}
 	return result
 }

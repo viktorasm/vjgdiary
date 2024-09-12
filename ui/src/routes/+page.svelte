@@ -80,19 +80,23 @@
         goto('/login');
     }
 
-    // returns true if difference is no more than two days
-    const isNextDayDiff = (date1: Date|null, date2: Date): boolean =>  {
+    // returns true if date2 is same or next day for date1
+    const isNextDay = (date1: Date|null, date2: Date): boolean =>  {
         if (!date1) {
             return false
         }
-        const time1 = date1.getTime();
-        const time2 = date2.getTime();
+        const startOfDay = new Date(date1);
+        startOfDay.setHours(0, 0, 0, 0);
 
-        const differenceInMilliseconds = Math.abs(time1 - time2);
-
-        const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
-
-        return differenceInMilliseconds < oneDayInMilliseconds*1.3;
+        // return true for next two days since start of day for date1
+        return Math.abs(startOfDay.getTime() - date2.getTime()) < 24 * 60 * 60 * 1000 * 2;
+    }
+    const formatDate = (date: Date): string => {
+        const result = date.toLocaleString("lt")
+        if (result.endsWith(":00")){
+            return result.slice(0, -3)
+        }
+        return result
     }
 </script>
 
@@ -112,14 +116,14 @@
             {/if}
         {#each $lessonsByDiscipline as [lessonDiscipline, lessons]}
             {@const nextDate = lessons[0].nextDates?new Date(lessons[0].nextDates[0]):null }
-            {@const isNextDay = isNextDayDiff(nextDate, new Date()) }
+            {@const nextDay = isNextDay(nextDate, new Date()) }
             <li class="py-3 sm:py-4">
                 <div class="mb-3">
                     <p class="font-medium text-xl text-cyan-900 truncate dark:text-white">{lessonDiscipline} <span class="ml-2 text-gray-500 text-sm">{lessons[0].teacher}</span></p>
                 </div>
 
                 {#if nextDate}
-                    <p class="mb-3"><span class="text-sm">Kita pamoka:</span> <span class:text-yellow-600={isNextDay} >{nextDate.toLocaleDateString("lt")} {nextDate.toLocaleTimeString("lt")} ({formatRelativeDate(nextDate)})</span></p>
+                    <p class="mb-3"><span class="text-sm">Kita pamoka:</span> <span class:text-yellow-600={nextDay} >{formatDate(nextDate)} ({formatRelativeDate(nextDate)})</span></p>
                 {/if}
 
                 <p class="mt-2 mb-1 text-sm">Buvusios pamokos:</p>
@@ -129,7 +133,7 @@
                         {@const day = new Date(lesson.day) }
 
                         <div class="{index==0?'text-md':'text-sm text-gray-600'} mb-2">
-                            <p ><span class="text-xs text-gray-500">{day.toLocaleDateString("lt")} ({formatRelativeDate(day)})</span></p>
+                            <p ><span class="text-xs text-gray-500">{formatDate(day)} ({formatRelativeDate(day)})</span></p>
                             <div class="flex flex-row">
                                 <div class="pr-2 justify-start flex-1 dark:text-red-500">
                                     {lesson.topic}

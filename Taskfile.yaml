@@ -32,9 +32,16 @@ tasks:
   apiserver:
     desc: runs API server. needs to be restarted after code changes.
     cmds:
-      - sam local start-api
+      - sam build
+      - sam local start-api --env-vars local-env-vars.json
   uiserver:
     desc: runs UI server. has live reload; needs api server running in parallel
     dir: ui
     cmds:
       - npm run dev
+  download-test-data:
+    desc: logs into real data sources and downloads data for later use
+    dir: testdata
+    cmds:
+      - go test -tags=gentestdata .
+

@@ -2,6 +2,7 @@ package collector
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
@@ -16,7 +17,7 @@ const remoteLocation = "https://dienynas.vjg.lt"
 
 type Collector struct {
 	c           *colly.Collector
-	LoginToken  string
+	loginToken  string
 	StudentName string
 }
 
@@ -26,6 +27,10 @@ func NewCollector() *Collector {
 			colly.MaxDepth(1),
 		),
 	}
+}
+
+func (c *Collector) WithTransport(transport http.RoundTripper) {
+	c.c.WithTransport(transport)
 }
 
 func (c *Collector) Login(user string, password string) error {
@@ -41,7 +46,7 @@ func (c *Collector) Login(user string, password string) error {
 		if err != nil {
 			return
 		}
-		c.LoginToken = u.Query().Get("token")
+		c.loginToken = u.Query().Get("token")
 		c.c.OnHTMLDetach(tokenSelector)
 	})
 
@@ -52,7 +57,7 @@ func (c *Collector) Login(user string, password string) error {
 	if err != nil {
 		return err
 	}
-	if c.LoginToken == "" || c.StudentName == "" {
+	if c.loginToken == "" || c.StudentName == "" {
 		return fmt.Errorf("could not login")
 	}
 
@@ -119,7 +124,7 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 			row.ForEach("td[id^='m_']", func(col int, colContent *colly.HTMLElement) {
 				colContent.ForEach(".marks_tr_markrow td[onclick^='tomval_AjaxCmd']", func(_ int, element *colly.HTMLElement) {
 					lessonID := parseLessonInfoCommand(element.Attr("onclick"))
-					url := fmt.Sprintf(remoteLocation+"/lessoninfo.php?time=%d&token=%s&id=%s", timestamp, c.LoginToken, lessonID)
+					url := fmt.Sprintf(remoteLocation+"/lessoninfo.php?time=%d&token=%s&id=%s", timestamp, c.loginToken, lessonID)
 
 					date := tableColumnToDate[colContent.DOM.Index()]
 					if date == nil {
@@ -140,7 +145,7 @@ func (c *Collector) GetLessonInfos() ([]*LessonInfo, error) {
 
 	})
 
-	if err := c.c.Visit(fmt.Sprintf(remoteLocation+"/marks.php?time=%d&token=%s&semester=87&alldays=0&final=0", timestamp, c.LoginToken)); err != nil {
+	if err := c.c.Visit(fmt.Sprintf(remoteLocation+"/marks.php?time=%d&token=%s&semester=87&alldays=0&final=0", timestamp, c.loginToken)); err != nil {
 		return nil, err
 	}
 
