@@ -30,9 +30,24 @@ tasks:
     dir: ui
     cmds:
       - npm run build
+    sources:
+      - node_modules/**/*
+      - src/**/*
   build-sam:
+    deps:
+      - build-ui
     cmds:
       - sam build
+    sources:
+      - ./**/*.go
+      - ui/build/**
+      - template.yaml
+      - samconfig.toml
+  clean:
+    desc: deletes all built artifacts for clean rebuild
+    cmds:
+      - rm -rf ui/build
+      - rm -rf .aws-sam
   deploy:
     desc: rebuilds everything and deploys lambda with AWS SAM
     deps:

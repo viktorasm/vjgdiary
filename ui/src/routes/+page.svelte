@@ -78,14 +78,14 @@
     type LessonsByDisciplineAndCategory = Discipline[]
     const lessonsByDisciplineAndCategory = writable<LessonsByDisciplineAndCategory>()
 
-    function mapToGroupedLessons(lessons: LessonInfo[]): LessonsByDisciplineAndCategory {
+    function mapToGroupedLessons(allLessons: LessonInfo[]): LessonsByDisciplineAndCategory {
         const now = new Date()
-        lessons = lessons.filter(value => {
+        let lessons = allLessons.filter(value => {
             return (currentViewMode.includeWithoutNotes || value.lessonNotes) ||
                 (currentViewMode.includeWithoutMarks || (value.mark && value.mark.length>0))
         })
 
-        const disciplines = _.map(_.groupBy(lessons, "discipline"),  (lessons: LessonInfo[], discipline: string) : Discipline=> {
+        return _.map(_.groupBy(lessons, "discipline"),  (lessons: LessonInfo[], discipline: string) : Discipline=> {
             const sortedLessons = lessons.sort((a, b) => {
                 return b.day.getTime() - a.day.getTime()
             })
@@ -114,18 +114,17 @@
                 }
             }
 
+            const allVisibleLessons = categories.map(i => i.lessons).flat()
+
+
 
             return {
                 name: discipline,
-                teachers: _.uniq(_.map(lessons, (l):string => {
-                    return l.teacher
-                })),
+                teachers: _.uniq(allVisibleLessons.map(l=>l.teacher)),
                 nextDate: lessons[0].nextDates?.[0],
                 categories: categories,
             }
         })
-
-        return disciplines;
     }
 
     lessons.subscribe(lessonsValue => {
@@ -287,6 +286,7 @@
                                 <div class="flex flex-row">
                                     <div class="pr-2 justify-start flex-1 dark:text-red-500">
                                         {lesson.topic}
+
                                     </div>
 
                                     <div class="justify-start flex-1">
