@@ -26,6 +26,8 @@
         categories: LessonsByCategory[]
     }
 
+    let compactView = true;
+
 
 
     type LessonsByDisciplineAndCategory = Discipline[]
@@ -41,18 +43,26 @@
             const [before, after] = _.partition(sortedLessons, (item: LessonInfo) => new Date(item.day) < now);
 
             const categories = [] as LessonsByCategory[]
-            if (before && before.length>0) {
-                before[0].isNextForThisDiscipline = true;
+
+            if (compactView) {
                 categories.push({
-                    category: "Praėjusios pamokos",
-                    lessons: before,
+                    category: "Paskutinė pamoka",
+                    lessons: before.splice(0,1),
                 })
-            }
-            if (after && after.length>0) {
-                categories.push({
-                    category: "Suplanuotos pamokos",
-                    lessons: after,
-                })
+            } else {
+                if (before && before.length>0) {
+                    before[0].isNextForThisDiscipline = true;
+                    categories.push({
+                        category: "Praėjusios pamokos",
+                        lessons: compactView?before.splice(0,1):before,
+                    })
+                }
+                if (after && after.length>0) {
+                    categories.push({
+                        category: "Suplanuotos pamokos",
+                        lessons: after,
+                    })
+                }
             }
 
 
@@ -186,6 +196,9 @@
                             <div class="{lesson.isNextForThisDiscipline?'text-md':'text-sm text-gray-600'} mb-3">
                                 <p ><span class="text-xs text-gray-500">{formatDate(day)} ({formatRelativeDate(day)})</span></p>
 
+                                {#if lesson.lessonNotes}
+                                    <div class="pt-2 pb-3"><span class="font-bold">{lesson.lessonNotes.category}</span> <span class="bg-amber-100 px-3 py-1 rounded-full">{lesson.lessonNotes.note}</span></div>
+                                {/if}
                                 {#if lesson.mark}
                                     <div class="font-bold">Pažymys: <span class="bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full">{lesson.mark}</span></div>
                                 {/if}
