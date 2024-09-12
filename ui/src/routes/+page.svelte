@@ -216,7 +216,7 @@
 
 
 
-
+<div class="hidden">
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
         <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
             <div class="flex items-center space-x-3 rtl:space-x-reverse">
@@ -240,10 +240,10 @@
             </div>
         </div>
     </nav>
+</div>
 
 
-
-<div class="flex flex-col items-center justify-center">
+<div class="hidden flex flex-col items-center justify-center">
     <div class="max-w-screen-xl bg-white shadow dark:border md:mt-0  md:p-6 p-2 dark:bg-gray-800 dark:border-gray-700">
 
 
