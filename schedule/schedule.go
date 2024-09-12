@@ -90,7 +90,7 @@ func (d *Downloader) GetSchedule(ctx context.Context) (*Schedule, error) {
 	}
 
 	if d.Schedule == nil {
-		println("downloading schedule 2")
+		println("downloading schedule")
 		s, err := d.downloadSchedule()
 		if err != nil {
 			fmt.Printf("failed to download: %v\n", err)

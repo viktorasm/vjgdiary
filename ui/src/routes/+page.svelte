@@ -6,37 +6,76 @@
     import { onMount } from 'svelte';
     import axios from 'axios';
     import Title from "$lib/components/title.svelte";
+    import _ from 'lodash';
+
+
 
 
     export function formatRelativeDate(date: Date): string {
         return moment(date).fromNow();
     }
 
-    const lessonsByDiscipline = writable<Map<LessonInfo[keyof LessonInfo],LessonInfo[]>>()
+    type LessonsByCategory = {
+        category: string
+        lessons: LessonInfo[]
+    }
+    type Discipline = {
+        name: string
+        nextDate?:Date
+        teachers:string[]
+        categories: LessonsByCategory[]
+    }
 
-    function groupBy<T>(array: T[], key: keyof T): Map<T[keyof T], T[]> {
-        return array.reduce((result, item) => {
-            const groupKey = item[key];
-            if (!result.has(groupKey)) {
-                result.set(groupKey, []);
+
+
+    type LessonsByDisciplineAndCategory = Discipline[]
+    const lessonsByDisciplineAndCategory = writable<LessonsByDisciplineAndCategory>()
+
+    function mapToGroupedLessons(lessons: LessonInfo[]): LessonsByDisciplineAndCategory {
+        const now = new Date()
+
+        const disciplines = _.map(_.groupBy(lessons, "discipline"),  (lessons: LessonInfo[], discipline: string) : Discipline=> {
+            const sortedLessons = lessons.sort((a, b) => {
+                return b.day.getTime() - a.day.getTime()
+            })
+            const [before, after] = _.partition(sortedLessons, (item: LessonInfo) => new Date(item.day) < now);
+
+            const categories = [] as LessonsByCategory[]
+            if (before && before.length>0) {
+                before[0].isNextForThisDiscipline = true;
+                categories.push({
+                    category: "Praėjusios pamokos",
+                    lessons: before,
+                })
             }
-            result.get(groupKey)!.push(item);
-            return result;
-        }, new Map<T[keyof T], T[]>());
+            if (after && after.length>0) {
+                categories.push({
+                    category: "Suplanuotos pamokos",
+                    lessons: after,
+                })
+            }
+
+
+            return {
+                name: discipline,
+                teachers: _.uniq(_.map(lessons, (l):string => {
+                    return l.teacher
+                })),
+                nextDate: lessons[0].nextDates?.[0],
+                categories: categories,
+            }
+        })
+
+        return disciplines;
     }
 
     lessons.subscribe(lessonsValue => {
         if (lessonsValue){
-            const grouped = groupBy(lessonsValue, "discipline")
-            grouped.forEach((value, key) => {
-                value.sort((a, b) => {
-                    return -a.day.localeCompare(b.day)
-                })
-            })
+            const result = mapToGroupedLessons(lessonsValue)
 
-            lessonsByDiscipline.set(grouped)
+            lessonsByDisciplineAndCategory.set(result)
         } else {
-            lessonsByDiscipline.set(new Map<LessonInfo[keyof LessonInfo], LessonInfo[]>())
+            lessonsByDisciplineAndCategory.set([])
         }
     })
 
@@ -65,8 +104,19 @@
 
         loading = true
         try {
-            const lessonsData = await axios.get("/api/lesson-info")
-            lessons.set(lessonsData.data)
+            const lessonsData = await axios.get("/api/lesson-info");
+            const items = lessonsData.data;
+            items.forEach((i:any) => {
+                if (i.day) {
+                    i.day = new Date(i.day)
+                }
+                if (i.nextDates) {
+                    i.nextDates = i.nextDates.map((i:any)=>{
+                        return new Date(i)
+                    })
+                }
+            })
+            lessons.set(items)
         } finally {
             loading = false
         }
@@ -81,8 +131,8 @@
     }
 
     // returns true if date2 is same or next day for date1
-    const isNextDay = (date1: Date|null, date2: Date): boolean =>  {
-        if (!date1) {
+    const isNextDay = (date1?: Date, date2?: Date): boolean =>  {
+        if (!date1 || !date2) {
             return false
         }
         const startOfDay = new Date(date1);
@@ -114,44 +164,47 @@
             {#if loading}
                 <em>Kraunasi...</em>
             {/if}
-        {#each $lessonsByDiscipline as [lessonDiscipline, lessons]}
-            {@const nextDate = lessons[0].nextDates?new Date(lessons[0].nextDates[0]):null }
-            {@const nextDay = isNextDay(nextDate, new Date()) }
+        {#each $lessonsByDisciplineAndCategory as discipline}
+            {@const nextDay = isNextDay(discipline.nextDate, new Date()) }
             <li class="py-3 sm:py-4">
-                <div class="mb-3">
-                    <p class="font-medium text-xl text-cyan-900 truncate dark:text-white">{lessonDiscipline} <span class="ml-2 text-gray-500 text-sm">{lessons[0].teacher}</span></p>
+                <div class="mb-2">
+                    <p class="font-medium text-xl text-cyan-900 truncate dark:text-white">{discipline.name} <span class="ml-2 text-gray-500 text-sm">{discipline.teachers}</span></p>
                 </div>
 
-                {#if nextDate}
-                    <p class="mb-3"><span class="text-sm">Kita pamoka:</span> <span class:text-yellow-600={nextDay} >{formatDate(nextDate)} ({formatRelativeDate(nextDate)})</span></p>
+                {#if discipline.nextDate}
+                    <p class="mb-1"><span class="text-sm">Kita pamoka:</span> <span class:text-yellow-600={nextDay} >{formatDate(discipline.nextDate)} ({formatRelativeDate(discipline.nextDate)})</span></p>
                 {/if}
 
-                <p class="mt-2 mb-1 text-sm">Buvusios pamokos:</p>
+                {#each discipline.categories as category}
+                    <div class="pb-3 pt-2">
+                    <p class="mt-2 mb-1 text-md text-gray-600 font-medium">{category.category}</p>
 
-                <div class="">
-                    {#each lessons as lesson, index}
-                        {@const day = new Date(lesson.day) }
+                    <div class="">
+                        {#each category.lessons as lesson}
+                            {@const day = new Date(lesson.day) }
 
-                        <div class="{index==0?'text-md':'text-sm text-gray-600'} mb-2">
-                            <p ><span class="text-xs text-gray-500">{formatDate(day)} ({formatRelativeDate(day)})</span></p>
-                            <div class="flex flex-row">
-                                <div class="pr-2 justify-start flex-1 dark:text-red-500">
-                                    {lesson.topic}
-                                </div>
+                            <div class="{lesson.isNextForThisDiscipline?'text-md':'text-sm text-gray-600'} mb-3">
+                                <p ><span class="text-xs text-gray-500">{formatDate(day)} ({formatRelativeDate(day)})</span></p>
+                                <div class="flex flex-row">
+                                    <div class="pr-2 justify-start flex-1 dark:text-red-500">
+                                        {lesson.topic}
+                                    </div>
 
-                                <div class="justify-start flex-1">
-                                    {#if lesson.assignments}
-                                        <ul class="list-none">
-                                            {#each lesson.assignments as assignment}
-                                                <li>Užduotis: {assignment}</li>
-                                            {/each}
-                                        </ul>
-                                    {/if}
+                                    <div class="justify-start flex-1">
+                                        {#if lesson.assignments}
+                                            <ul class="list-none">
+                                                {#each lesson.assignments as assignment}
+                                                    <li>Užduotis: {assignment}</li>
+                                                {/each}
+                                            </ul>
+                                        {/if}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    {/each}
-                </div>
+                        {/each}
+                    </div>
+                    </div>
+                {/each}
 
             </li>
         {/each}

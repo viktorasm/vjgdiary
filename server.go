@@ -10,7 +10,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
 
@@ -223,7 +222,6 @@ func enrichLessonsWithSchedule(lessons []*collector.LessonInfo, s *schedule.Sche
 		}
 		return result
 	})
-	spew.Dump(datesByDiscipline)
 
 	// tricky bit is to figure out which lesson is which when there are two on the same day. group everything by day and map it like this.
 	lessonsByDay := lo.GroupBy(lessons, func(item *collector.LessonInfo) string {
@@ -257,7 +255,6 @@ func enrichLessonsWithSchedule(lessons []*collector.LessonInfo, s *schedule.Sche
 			// assign sameDayDisciplineDates to disciplineLessons date. ideally number of both should match
 			for index, l := range disciplineLessons {
 				adjustedDate := getItemOrLast(sameDayDisciplineDates, index)
-				fmt.Printf("correcting %s: %v -> %v\n", discipline, l.Day, adjustedDate)
 				l.Day = lo.ToPtr(adjustedDate)
 			}
 		}
