@@ -26,8 +26,53 @@
         categories: LessonsByCategory[]
     }
 
-    let compactView = true;
+    type ViewMode = {
+        name: string
+        isCompact: boolean
+        sortby: string
+        includeWithoutMarks: boolean
+        includeWithoutNotes: boolean
+    }
+    const sortByNextLesson = "next_lesson";
+    const sortByLastLesson = "last_lesson";
 
+
+    const viewModeLatest: ViewMode = {
+        name: "Paskutinė ir sekanti pamoka",
+        isCompact: true,
+        sortby: sortByNextLesson,
+        includeWithoutMarks: true,
+        includeWithoutNotes: true,
+    }
+    const viewModeHistory: ViewMode = {
+        name: "Visa pamokų istorija",
+        isCompact: false,
+        sortby: sortByNextLesson,
+        includeWithoutMarks: true,
+        includeWithoutNotes: true,
+    }
+    const viewModeMarks: ViewMode = {
+        name: "Pažymiai ir pastabos",
+        isCompact: false,
+        includeWithoutMarks: false,
+        includeWithoutNotes: false,
+        sortby: sortByNextLesson,
+    }
+
+    const viewModes = [viewModeLatest, viewModeMarks, viewModeHistory]
+
+    let currentViewMode = viewModeLatest;
+    let lastLessons = [] as (LessonInfo[]|undefined)
+
+    const rebuildLessonsView = () => {
+        if (lastLessons) {
+            const result = mapToGroupedLessons(lastLessons)
+
+            lessonsByDisciplineAndCategory.set(result)
+        } else {
+            lessonsByDisciplineAndCategory.set([])
+        }
+    }
 
 
     type LessonsByDisciplineAndCategory = Discipline[]
@@ -35,6 +80,10 @@
 
     function mapToGroupedLessons(lessons: LessonInfo[]): LessonsByDisciplineAndCategory {
         const now = new Date()
+        lessons = lessons.filter(value => {
+            return (currentViewMode.includeWithoutNotes || value.lessonNotes) ||
+                (currentViewMode.includeWithoutMarks || (value.mark && value.mark.length>0))
+        })
 
         const disciplines = _.map(_.groupBy(lessons, "discipline"),  (lessons: LessonInfo[], discipline: string) : Discipline=> {
             const sortedLessons = lessons.sort((a, b) => {
@@ -44,7 +93,7 @@
 
             const categories = [] as LessonsByCategory[]
 
-            if (compactView) {
+            if (currentViewMode.isCompact) {
                 categories.push({
                     category: "Paskutinė pamoka",
                     lessons: before.splice(0,1),
@@ -54,7 +103,7 @@
                     before[0].isNextForThisDiscipline = true;
                     categories.push({
                         category: "Praėjusios pamokos",
-                        lessons: compactView?before.splice(0,1):before,
+                        lessons: before,
                     })
                 }
                 if (after && after.length>0) {
@@ -80,18 +129,14 @@
     }
 
     lessons.subscribe(lessonsValue => {
-        if (lessonsValue){
-            const result = mapToGroupedLessons(lessonsValue)
-
-            lessonsByDisciplineAndCategory.set(result)
-        } else {
-            lessonsByDisciplineAndCategory.set([])
-        }
+        lastLessons = lessonsValue
+        rebuildLessonsView()
     })
 
     let loggedIn: any = null
 
     let loading = false
+
 
 
     onMount(async () =>{
@@ -158,17 +203,50 @@
         }
         return result
     }
+    const setViewMode = (mode: ViewMode) => {
+        currentViewMode = mode
+        rebuildLessonsView()
+    }
 </script>
 
 <Title title=""/>
 
 
 {#if loggedIn}
-<div class="flex flex-col items-center justify-center md:p-6 md:py-8">
-    <div class="w-full bg-white shadow dark:border md:mt-0  md:p-6 p-2 dark:bg-gray-800 dark:border-gray-700">
 
-    <h1>{loggedIn.name}</h1>
-    <a href="logout" on:click={handleLogout}>Logout</a>
+
+
+
+    <nav class="bg-white border-gray-200 dark:bg-gray-900">
+        <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
+            <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">VJG dienynas: {loggedIn.name}</span>
+            </div>
+            <div class="flex items-center space-x-6 rtl:space-x-reverse">
+                <a href="" on:click={handleLogout} class="text-sm  text-blue-600 dark:text-blue-500 hover:underline">Logout</a>
+            </div>
+        </div>
+    </nav>
+    <nav class="bg-gray-50 dark:bg-gray-700">
+        <div class="max-w-screen-xl px-4 py-3 mx-auto">
+            <div class="flex items-center">
+                <ul class="flex flex-row font-medium mt-0 space-x-8 rtl:space-x-reverse text-sm pt-2 pb-2">
+                    {#each viewModes as viewMode}
+                    <li>
+                        <a href="" on:click={() => setViewMode(viewMode)} class="rounded-full m-0 py-2 px-4 text-gray-900 dark:text-white no-underline hover:underline {viewMode===currentViewMode?'bg-amber-100':''}" aria-current="page">{viewMode.name}</a>
+                    </li>
+                    {/each}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+
+<div class="flex flex-col items-center justify-center">
+    <div class="max-w-screen-xl bg-white shadow dark:border md:mt-0  md:p-6 p-2 dark:bg-gray-800 dark:border-gray-700">
+
+
     <div class="max-w-screen-2xl">
         <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
             {#if loading}
