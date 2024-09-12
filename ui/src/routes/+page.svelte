@@ -256,7 +256,7 @@
             {@const nextDay = isNextDay(discipline.nextDate, new Date()) }
             <li class="py-3 sm:py-4">
                 <div class="mb-2 ">
-                    <p class="font-medium text-xl text-cyan-900 dark:text-white">{discipline.name} <span class="ml-2 text-gray-500 text-sm">{discipline.teachers}</span></p>
+                    <p class="font-medium text-xl text-cyan-900 dark:text-white">{discipline.name} <span class="ml-2 text-gray-500 text-sm">{discipline.teachers.join(", ")}</span></p>
                 </div>
 
                 {#if discipline.nextDate}
